@@ -53,6 +53,7 @@ Integrator::Integrator()
 	sample_clamp_indirect = 0.0f;
 	motion_blur = false;
 
+	samples = 1;
 	aa_samples = 0;
 	diffuse_samples = 1;
 	glossy_samples = 1;
@@ -122,6 +123,7 @@ void Integrator::device_update(Device *device, DeviceScene *dscene, Scene *scene
 	kintegrator->sample_clamp_indirect = (sample_clamp_indirect == 0.0f)? FLT_MAX: sample_clamp_indirect*3.0f;
 
 	kintegrator->branched = (method == BRANCHED_PATH);
+	kintegrator->samples = samples;
 	kintegrator->aa_samples = aa_samples;
 	kintegrator->diffuse_samples = diffuse_samples;
 	kintegrator->glossy_samples = glossy_samples;
@@ -201,7 +203,8 @@ bool Integrator::modified(const Integrator& integrator)
 		motion_blur == integrator.motion_blur &&
 		sampling_pattern == integrator.sampling_pattern &&
 		sample_all_lights_direct == integrator.sample_all_lights_direct &&
-		sample_all_lights_indirect == integrator.sample_all_lights_indirect);
+		sample_all_lights_indirect == integrator.sample_all_lights_indirect &&
+		samples == integrator.samples);
 }
 
 void Integrator::tag_update(Scene *scene)
