@@ -19,7 +19,7 @@
 
 CCL_NAMESPACE_BEGIN
 
-ccl_device void compute_light_pass(KernelGlobals *kg, ShaderData *sd, PathRadiance *L, RNG rng, bool is_ao)
+ccl_device void compute_light_pass(KernelGlobals *kg, ShaderData *sd, PathRadiance *L, RNG rng, bool is_ao, bool is_sss)
 {
 	int samples = kernel_data.integrator.aa_samples;
 
@@ -48,6 +48,21 @@ ccl_device void compute_light_pass(KernelGlobals *kg, ShaderData *sd, PathRadian
 		/* sample ambient occlusion */
 		if (is_ao) {
 			kernel_path_ao(kg, sd, &L_sample, &state, &rng, throughput);
+		}
+
+		else if (is_sss) {
+			if (kernel_path_integrate_lighting(kg, &rng, sd, &throughput, &state, &L_sample, &ray)) {
+#ifdef __LAMP_MIS__
+				state.ray_t = 0.0f;
+#endif
+
+				/* compute indirect light */
+				kernel_path_indirect(kg, &rng, ray, throughput, state.num_samples, state, &L_sample);
+
+				/* sum and reset indirect light pass variables for the next samples */
+				path_radiance_sum_indirect(&L_sample);
+				path_radiance_reset_indirect(&L_sample);
+			}
 		}
 
 		/* sample light and BSDF */
@@ -125,7 +140,9 @@ ccl_device void kernel_bake_evaluate(KernelGlobals *kg, ccl_global uint4 *input,
 
 	if (is_light_pass(type)){
 		RNG rng = hash_int(i);
-		compute_light_pass(kg, &sd, &L, rng, (type == SHADER_EVAL_AO));
+		compute_light_pass(kg, &sd, &L, rng,
+		                   (type == SHADER_EVAL_AO),
+		                   (type == SHADER_EVAL_SUBSURFACE_DIRECT || type == SHADER_EVAL_SUBSURFACE_INDIRECT));
 	}
 
 	switch (type) {
