@@ -727,7 +727,7 @@ void Session::update_scene()
 	}
 
 	/* number of samples is needed by multi jittered
-	   sampling pattern and by baking */
+	 * sampling pattern and by baking */
 	Integrator *integrator = scene->integrator;
 
 	int aa_samples = tile_manager.num_samples;
